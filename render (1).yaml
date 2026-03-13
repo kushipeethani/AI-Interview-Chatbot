@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ai-interview-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    pythonVersion: "3.11.0"
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
