@@ -31,14 +31,10 @@ Get-Content -LiteralPath $EnvFile | ForEach-Object {
 }
 
 $requiredKeys = @(
-    "SMTP_HOST",
-    "SMTP_PORT",
-    "SMTP_USER",
-    "SMTP_PASSWORD",
-    "SMTP_FROM_EMAIL",
-    "SMTP_FROM_NAME",
-    "SMTP_USE_TLS",
-    "SMTP_USE_SSL",
+    "RESEND_API_KEY",
+    "RESEND_FROM_EMAIL",
+    "RESEND_FROM_NAME",
+    "RESEND_API_URL",
     "ALLOW_INSECURE_OTP_RESPONSE"
 )
 
@@ -65,7 +61,7 @@ if (-not $service) {
 }
 
 $serviceId = if ($service.service) { $service.service.id } else { $service.id }
-Write-Host "Updating SMTP environment variables on Render service '$ServiceName'..."
+Write-Host "Updating email environment variables on Render service '$ServiceName'..."
 
 foreach ($key in $requiredKeys) {
     $body = @{ value = $dotenv[$key] } | ConvertTo-Json

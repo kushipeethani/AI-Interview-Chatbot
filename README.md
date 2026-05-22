@@ -138,22 +138,20 @@ This repo now includes a root `render.yaml` blueprint for:
 
 Set these backend environment variables in Render:
 - `GROQ_API_KEY`
-- `SMTP_HOST=smtp.gmail.com`
-- `SMTP_PORT=587`
-- `SMTP_USER=<your Gmail address>`
-- `SMTP_PASSWORD=<your Gmail app password>`
-- `SMTP_FROM_EMAIL=<the same Gmail address>`
-- `SMTP_FROM_NAME`
-- `SMTP_USE_TLS`
-- `SMTP_USE_SSL`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- `RESEND_FROM_NAME`
+- `RESEND_API_URL`
 - `ALLOW_INSECURE_OTP_RESPONSE`
 
-For Gmail SMTP, `SMTP_PASSWORD` must be a Google app password, not the normal account password. In Render, open the backend service, go to **Environment**, add or update the variables above, then redeploy the service. If `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, or `SMTP_FROM_EMAIL` are missing, OTP requests will return: `OTP email delivery is not configured on the server`.
+OTP email uses Resend over HTTPS so it works on Render Free without SMTP ports. In Render, open the backend service, go to **Environment**, add or update the variables above, then redeploy the service. If `RESEND_API_KEY` or `RESEND_FROM_EMAIL` is missing, OTP requests will return: `OTP email delivery is not configured on the server`.
+
+For a quick Resend test, you can use `RESEND_FROM_EMAIL=onboarding@resend.dev`. For real users, verify a domain in Resend and use an address from that domain.
 
 You can also apply the backend `.env` values with Render's API:
 ```powershell
 $env:RENDER_API_KEY="your_render_api_key"
-.\scripts\set-render-smtp-env.ps1
+.\scripts\set-render-email-env.ps1
 ```
 
 Set this frontend environment variable in Render:

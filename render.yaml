@@ -8,22 +8,14 @@ services:
     envVars:
       - key: GROQ_API_KEY
         sync: false
-      - key: SMTP_HOST
-        value: smtp.gmail.com
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
+      - key: RESEND_API_KEY
         sync: false
-      - key: SMTP_PASSWORD
+      - key: RESEND_FROM_EMAIL
         sync: false
-      - key: SMTP_FROM_EMAIL
-        sync: false
-      - key: SMTP_FROM_NAME
+      - key: RESEND_FROM_NAME
         value: AI Interview
-      - key: SMTP_USE_TLS
-        value: "true"
-      - key: SMTP_USE_SSL
-        value: "false"
+      - key: RESEND_API_URL
+        value: https://api.resend.com/emails
       - key: ALLOW_INSECURE_OTP_RESPONSE
         value: "false"
 

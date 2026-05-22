@@ -10,10 +10,7 @@ import os
 import json
 import re
 import random
-import smtplib
-import ssl
 from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -93,17 +90,10 @@ INTERVIEWS_DB_FILE = Path(__file__).with_name("interviews_db.json")
 DEFAULT_INTERVIEWS = []
 
 OTP_EXPIRY_MINUTES = max(int(os.getenv("SIGNUP_OTP_TTL_MINUTES", "10")), 1)
-SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
-try:
-    SMTP_PORT = int(os.getenv("SMTP_PORT", "587") or "587")
-except ValueError:
-    SMTP_PORT = 587
-SMTP_USER = os.getenv("SMTP_USER", "").strip()
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "").strip() or SMTP_USER
-SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "AI Interview")
-SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() != "false"
-SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "false").strip().lower() == "true"
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
+RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "").strip()
+RESEND_FROM_NAME = os.getenv("RESEND_FROM_NAME", "AI Interview").strip()
+RESEND_API_URL = os.getenv("RESEND_API_URL", "https://api.resend.com/emails").strip()
 ALLOW_INSECURE_OTP_RESPONSE = os.getenv("ALLOW_INSECURE_OTP_RESPONSE", "false").strip().lower() == "true"
 
 
@@ -196,99 +186,85 @@ def get_password_reset_session(reset_token: str) -> Optional[dict]:
     return record
 
 
-def get_missing_smtp_settings() -> List[str]:
+def get_missing_email_settings() -> List[str]:
     missing = []
-    if not SMTP_HOST:
-        missing.append("SMTP_HOST")
-    if not SMTP_USER:
-        missing.append("SMTP_USER")
-    if not SMTP_PASSWORD:
-        missing.append("SMTP_PASSWORD")
-    if not SMTP_FROM_EMAIL:
-        missing.append("SMTP_FROM_EMAIL")
+    if not RESEND_API_KEY:
+        missing.append("RESEND_API_KEY")
+    if not RESEND_FROM_EMAIL:
+        missing.append("RESEND_FROM_EMAIL")
     return missing
 
 
-def is_smtp_configured() -> bool:
-    return not get_missing_smtp_settings()
+def is_email_configured() -> bool:
+    return not get_missing_email_settings()
 
 
 def build_otp_config_error() -> HTTPException:
-    missing = get_missing_smtp_settings()
+    missing = get_missing_email_settings()
     missing_text = f" Missing: {', '.join(missing)}." if missing else ""
     return HTTPException(
         status_code=500,
         detail=(
             "OTP email delivery is not configured on the server. "
-            "Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM_EMAIL."
+            "Set RESEND_API_KEY and RESEND_FROM_EMAIL."
             f"{missing_text}"
         ),
     )
 
 
-def send_auth_otp_email(recipient_email: str, otp: str, purpose: str) -> None:
-    if not is_smtp_configured():
+async def send_auth_otp_email(recipient_email: str, otp: str, purpose: str) -> None:
+    if not is_email_configured():
         raise build_otp_config_error()
 
-    message = EmailMessage()
-    message["Subject"] = f"Your AI Interview {purpose} OTP"
-    message["From"] = f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
-    message["To"] = recipient_email
-    message.set_content(
-        "\n".join([
-            f"Your AI Interview {purpose} OTP is:",
-            otp,
-            "",
-            f"It expires in {OTP_EXPIRY_MINUTES} minutes.",
-            "If you did not request this, you can ignore this email.",
-        ])
-    )
+    subject = f"Your AI Interview {purpose} OTP"
+    body = "\n".join([
+        f"Your AI Interview {purpose} OTP is:",
+        otp,
+        "",
+        f"It expires in {OTP_EXPIRY_MINUTES} minutes.",
+        "If you did not request this, you can ignore this email.",
+    ])
+    sender = f"{RESEND_FROM_NAME} <{RESEND_FROM_EMAIL}>"
+    payload = {
+        "from": sender,
+        "to": [recipient_email],
+        "subject": subject,
+        "text": body,
+    }
+    headers = {
+        "Authorization": f"Bearer {RESEND_API_KEY}",
+        "Content-Type": "application/json",
+    }
 
     try:
-        smtp_class = smtplib.SMTP_SSL if SMTP_USE_SSL else smtplib.SMTP
-        with smtp_class(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-            server.ehlo()
-            if SMTP_USE_TLS and not SMTP_USE_SSL:
-                server.starttls(context=ssl.create_default_context())
-                server.ehlo()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(message)
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(RESEND_API_URL, headers=headers, json=payload)
+        response.raise_for_status()
     except HTTPException:
         raise
-    except smtplib.SMTPAuthenticationError as exc:
-        logger.exception("SMTP authentication failed while sending OTP email")
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code
+        logger.exception("Resend rejected OTP email with status %s", status_code)
+        if status_code in {401, 403}:
+            detail = "Resend authentication failed. Check RESEND_API_KEY."
+        elif status_code == 422:
+            detail = "Resend rejected the email request. Check RESEND_FROM_EMAIL and verify your Resend sender/domain."
+        else:
+            detail = "Resend rejected the OTP email request."
+        raise HTTPException(status_code=500, detail=detail) from exc
+    except httpx.RequestError as exc:
+        logger.exception("Could not connect to Resend while sending OTP email")
         raise HTTPException(
             status_code=500,
-            detail=(
-                "SMTP authentication failed. Check SMTP_USER and SMTP_PASSWORD; "
-                "Gmail accounts usually require an app password."
-            ),
-        ) from exc
-    except (smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused) as exc:
-        logger.exception("SMTP sender or recipient was refused while sending OTP email")
-        raise HTTPException(
-            status_code=500,
-            detail="SMTP rejected the sender or recipient email address. Check SMTP_FROM_EMAIL.",
-        ) from exc
-    except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, TimeoutError, OSError) as exc:
-        logger.exception("Could not connect to SMTP server while sending OTP email")
-        raise HTTPException(
-            status_code=500,
-            detail="Could not connect to the SMTP server. Check SMTP_HOST, SMTP_PORT, SMTP_USE_TLS, and SMTP_USE_SSL.",
-        ) from exc
-    except smtplib.SMTPException as exc:
-        logger.exception("SMTP error while sending OTP email")
-        raise HTTPException(
-            status_code=500,
-            detail="The SMTP server rejected the OTP email. Check your SMTP provider settings.",
+            detail="Could not connect to Resend. Check RESEND_API_URL and your server network access.",
         ) from exc
     except Exception as exc:
         logger.exception("Unexpected error while sending OTP email")
         raise HTTPException(status_code=500, detail="Unable to send OTP email right now") from exc
 
 
-def send_signup_otp_email(recipient_email: str, otp: str) -> None:
-    send_auth_otp_email(recipient_email, otp, "signup")
+async def send_signup_otp_email(recipient_email: str, otp: str) -> None:
+    await send_auth_otp_email(recipient_email, otp, "signup")
 
 
 def to_number(value):
@@ -561,13 +537,13 @@ async def request_signup_otp(req: SignupOtpRequest):
         "otp": otp,
         "expires_at": utc_now() + timedelta(minutes=OTP_EXPIRY_MINUTES),
     }
-    if is_smtp_configured():
-        send_signup_otp_email(email, otp)
+    if is_email_configured():
+        await send_signup_otp_email(email, otp)
         return {"ok": True, "message": f"OTP sent to {email}"}
     if ALLOW_INSECURE_OTP_RESPONSE:
         return {
             "ok": True,
-            "message": "SMTP is not configured. Returning OTP directly because ALLOW_INSECURE_OTP_RESPONSE=true.",
+            "message": "Email delivery is not configured. Returning OTP directly because ALLOW_INSECURE_OTP_RESPONSE=true.",
             "dev_otp": otp,
         }
     raise build_otp_config_error()
@@ -632,13 +608,13 @@ async def request_password_reset_otp(req: PasswordResetOtpRequest):
         "expires_at": utc_now() + timedelta(minutes=OTP_EXPIRY_MINUTES),
     }
 
-    if is_smtp_configured():
-        send_auth_otp_email(email, otp, "password reset")
+    if is_email_configured():
+        await send_auth_otp_email(email, otp, "password reset")
         return {"ok": True, "message": f"OTP sent to {email}"}
     if ALLOW_INSECURE_OTP_RESPONSE:
         return {
             "ok": True,
-            "message": "SMTP is not configured. Returning OTP directly because ALLOW_INSECURE_OTP_RESPONSE=true.",
+            "message": "Email delivery is not configured. Returning OTP directly because ALLOW_INSECURE_OTP_RESPONSE=true.",
             "dev_otp": otp,
         }
     raise build_otp_config_error()
