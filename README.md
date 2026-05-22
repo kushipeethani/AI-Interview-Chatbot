@@ -132,7 +132,7 @@ Then open http://localhost:5173 in Chrome.
 
 This repo now includes a root `render.yaml` blueprint for:
 - `ai-interview-backend` as a Python web service
-- `ai-interview-frontend` as a static site
+- `ai-interview-frontend` as a Render static site (`type: web`, `runtime: static`)
 
 ### Before deploy
 
