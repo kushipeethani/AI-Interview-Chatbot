@@ -189,6 +189,38 @@ VITE_API_BASE_URL=https://your-backend-name.onrender.com
 5. Add the required environment variables before the first production use.
 6. Open the frontend Render URL after both services finish deploying.
 
+## Deploy Backend on Koyeb
+
+Use Koyeb for the backend if you want Gmail SMTP on a free service. Koyeb blocks port `25`, but their docs say to use encrypted SMTP on port `587`.
+
+1. Go to https://app.koyeb.com and create a **Web Service**.
+2. Select **GitHub** and choose this repository.
+3. Set the branch to `main`.
+4. Set the project/root directory to `backend`.
+5. Choose **Buildpack**.
+6. If Koyeb asks for a run command, use:
+```bash
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+7. Add backend environment variables:
+```env
+GROQ_API_KEY=your_groq_api_key
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=yourgmail@gmail.com
+SMTP_PASSWORD=your_gmail_app_password
+SMTP_FROM_EMAIL=yourgmail@gmail.com
+SMTP_FROM_NAME=AI Interview
+SMTP_USE_TLS=true
+ALLOW_INSECURE_OTP_RESPONSE=false
+```
+8. Deploy and copy the generated `.koyeb.app` backend URL.
+9. In the frontend host, set:
+```env
+VITE_API_BASE_URL=https://your-koyeb-backend-url.koyeb.app
+```
+10. Redeploy the frontend.
+
 ### Local env files
 
 Templates are included here:
