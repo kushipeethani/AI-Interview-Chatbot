@@ -138,6 +138,11 @@ This repo now includes a root `render.yaml` blueprint for:
 
 Set these backend environment variables in Render:
 - `GROQ_API_KEY`
+- `GMAIL_API_CLIENT_ID`
+- `GMAIL_API_CLIENT_SECRET`
+- `GMAIL_API_REFRESH_TOKEN`
+- `GMAIL_API_FROM_EMAIL`
+- `GMAIL_API_FROM_NAME`
 - `SMTP_HOST`
 - `SMTP_PORT`
 - `SMTP_USER`
@@ -151,7 +156,16 @@ Set these backend environment variables in Render:
 - `RESEND_API_URL`
 - `ALLOW_INSECURE_OTP_RESPONSE`
 
-OTP email uses SMTP when SMTP variables are configured, otherwise it falls back to Resend over HTTPS. In Render, open the backend service, go to **Environment**, add or update the variables above, then redeploy the service. If neither SMTP nor Resend is configured, OTP requests will return: `OTP email delivery is not configured on the server`.
+OTP email uses Gmail API first when Gmail API variables are configured. That works on Render Free because it uses HTTPS instead of blocked SMTP ports. If Gmail API is not configured, it falls back to SMTP, then Resend over HTTPS. In Render, open the backend service, go to **Environment**, add or update the variables above, then redeploy the service. If no email provider is configured, OTP requests will return: `OTP email delivery is not configured on the server`.
+
+For a no-card Render Free setup with your Gmail account, enable the Gmail API in Google Cloud, create OAuth credentials, authorize the `https://www.googleapis.com/auth/gmail.send` scope once, and set:
+```env
+GMAIL_API_CLIENT_ID=your_google_oauth_client_id
+GMAIL_API_CLIENT_SECRET=your_google_oauth_client_secret
+GMAIL_API_REFRESH_TOKEN=your_google_oauth_refresh_token
+GMAIL_API_FROM_EMAIL=yourgmail@gmail.com
+GMAIL_API_FROM_NAME=AI Interview
+```
 
 For a free Gmail SMTP demo, enable 2-Step Verification on the Gmail account, create a Gmail App Password, then set:
 ```env

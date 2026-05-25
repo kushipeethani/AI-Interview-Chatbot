@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import httpx
 import asyncio
+import base64
 import logging
 import os
 import json
@@ -107,6 +108,13 @@ if SMTP_HOST in {"smtp.gmail.com", "smtp-relay.gmail.com"}:
 SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", SMTP_USER).strip()
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", RESEND_FROM_NAME).strip()
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() != "false"
+GMAIL_API_CLIENT_ID = os.getenv("GMAIL_API_CLIENT_ID", "").strip()
+GMAIL_API_CLIENT_SECRET = os.getenv("GMAIL_API_CLIENT_SECRET", "").strip()
+GMAIL_API_REFRESH_TOKEN = os.getenv("GMAIL_API_REFRESH_TOKEN", "").strip()
+GMAIL_API_FROM_EMAIL = os.getenv("GMAIL_API_FROM_EMAIL", SMTP_FROM_EMAIL).strip()
+GMAIL_API_FROM_NAME = os.getenv("GMAIL_API_FROM_NAME", SMTP_FROM_NAME).strip()
+GMAIL_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
 ALLOW_INSECURE_OTP_RESPONSE = os.getenv("ALLOW_INSECURE_OTP_RESPONSE", "false").strip().lower() == "true"
 
 
@@ -221,6 +229,23 @@ def get_missing_smtp_settings() -> List[str]:
     return missing
 
 
+def get_missing_gmail_api_settings() -> List[str]:
+    missing = []
+    if not GMAIL_API_CLIENT_ID:
+        missing.append("GMAIL_API_CLIENT_ID")
+    if not GMAIL_API_CLIENT_SECRET:
+        missing.append("GMAIL_API_CLIENT_SECRET")
+    if not GMAIL_API_REFRESH_TOKEN:
+        missing.append("GMAIL_API_REFRESH_TOKEN")
+    if not GMAIL_API_FROM_EMAIL:
+        missing.append("GMAIL_API_FROM_EMAIL")
+    return missing
+
+
+def is_gmail_api_configured() -> bool:
+    return not get_missing_gmail_api_settings()
+
+
 def is_smtp_configured() -> bool:
     return not get_missing_smtp_settings()
 
@@ -230,13 +255,13 @@ def is_resend_configured() -> bool:
 
 
 def get_missing_email_settings() -> List[str]:
-    if is_smtp_configured() or is_resend_configured():
+    if is_gmail_api_configured() or is_smtp_configured() or is_resend_configured():
         return []
-    return get_missing_smtp_settings() + get_missing_resend_settings()
+    return get_missing_gmail_api_settings() + get_missing_smtp_settings() + get_missing_resend_settings()
 
 
 def is_email_configured() -> bool:
-    return is_smtp_configured() or is_resend_configured()
+    return is_gmail_api_configured() or is_smtp_configured() or is_resend_configured()
 
 
 def build_otp_config_error() -> HTTPException:
@@ -246,11 +271,59 @@ def build_otp_config_error() -> HTTPException:
         status_code=500,
         detail=(
             "OTP email delivery is not configured on the server. "
-            "Set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM_EMAIL, "
+            "Set GMAIL_API_CLIENT_ID, GMAIL_API_CLIENT_SECRET, GMAIL_API_REFRESH_TOKEN, and GMAIL_API_FROM_EMAIL, "
+            "or set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM_EMAIL, "
             "or set RESEND_API_KEY and RESEND_FROM_EMAIL."
             f"{missing_text}"
         ),
     )
+
+
+async def send_gmail_api_email(recipient_email: str, subject: str, body: str) -> None:
+    message = EmailMessage()
+    message["From"] = formataddr((GMAIL_API_FROM_NAME, GMAIL_API_FROM_EMAIL))
+    message["To"] = recipient_email
+    message["Subject"] = subject
+    message.set_content(body)
+
+    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    token_payload = {
+        "client_id": GMAIL_API_CLIENT_ID,
+        "client_secret": GMAIL_API_CLIENT_SECRET,
+        "refresh_token": GMAIL_API_REFRESH_TOKEN,
+        "grant_type": "refresh_token",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            token_response = await client.post(GMAIL_TOKEN_URL, data=token_payload)
+            token_response.raise_for_status()
+            access_token = token_response.json().get("access_token")
+            if not access_token:
+                raise HTTPException(status_code=500, detail="Gmail API did not return an access token.")
+
+            send_response = await client.post(
+                GMAIL_SEND_URL,
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json",
+                },
+                json={"raw": raw_message},
+            )
+            send_response.raise_for_status()
+    except HTTPException:
+        raise
+    except httpx.HTTPStatusError as exc:
+        gmail_msg = get_resend_error_message(exc.response)
+        logger.exception("Gmail API rejected OTP email with status %s: %s", exc.response.status_code, gmail_msg)
+        detail = f"Gmail API rejected the OTP email request: {gmail_msg}" if gmail_msg else "Gmail API rejected the OTP email request. Check Gmail API OAuth settings and sender account permissions."
+        raise HTTPException(status_code=500, detail=detail) from exc
+    except httpx.RequestError as exc:
+        logger.exception("Could not connect to Gmail API while sending OTP email")
+        raise HTTPException(
+            status_code=500,
+            detail="Could not connect to Gmail API. Check server network access and Gmail API configuration.",
+        ) from exc
 
 
 def send_smtp_email(recipient_email: str, subject: str, body: str) -> None:
@@ -350,6 +423,10 @@ async def send_auth_otp_email(recipient_email: str, otp: str, purpose: str) -> N
         f"It expires in {OTP_EXPIRY_MINUTES} minutes.",
         "If you did not request this, you can ignore this email.",
     ])
+
+    if is_gmail_api_configured():
+        await send_gmail_api_email(recipient_email, subject, body)
+        return
 
     if is_smtp_configured():
         await asyncio.to_thread(send_smtp_email, recipient_email, subject, body)
