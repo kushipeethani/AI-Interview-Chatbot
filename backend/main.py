@@ -274,9 +274,15 @@ def send_smtp_email(recipient_email: str, subject: str, body: str) -> None:
         ) from exc
     except (smtplib.SMTPException, OSError) as exc:
         logger.exception("SMTP failed while sending OTP email")
+        smtp_error = str(exc).strip()
+        suffix = f" SMTP said: {smtp_error}" if smtp_error else ""
         raise HTTPException(
             status_code=500,
-            detail="Could not send OTP through SMTP. Check SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, and sender settings.",
+            detail=(
+                "Could not send OTP through SMTP. Check SMTP_HOST, SMTP_PORT, "
+                "SMTP_USER, SMTP_PASSWORD, sender settings, and recipient email."
+                f"{suffix}"
+            ),
         ) from exc
 
 
