@@ -138,13 +138,31 @@ This repo now includes a root `render.yaml` blueprint for:
 
 Set these backend environment variables in Render:
 - `GROQ_API_KEY`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASSWORD`
+- `SMTP_FROM_EMAIL`
+- `SMTP_FROM_NAME`
+- `SMTP_USE_TLS`
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 - `RESEND_FROM_NAME`
 - `RESEND_API_URL`
 - `ALLOW_INSECURE_OTP_RESPONSE`
 
-OTP email uses Resend over HTTPS so it works on Render Free without SMTP ports. In Render, open the backend service, go to **Environment**, add or update the variables above, then redeploy the service. If `RESEND_API_KEY` or `RESEND_FROM_EMAIL` is missing, OTP requests will return: `OTP email delivery is not configured on the server`.
+OTP email uses SMTP when SMTP variables are configured, otherwise it falls back to Resend over HTTPS. In Render, open the backend service, go to **Environment**, add or update the variables above, then redeploy the service. If neither SMTP nor Resend is configured, OTP requests will return: `OTP email delivery is not configured on the server`.
+
+For a free Gmail SMTP demo, enable 2-Step Verification on the Gmail account, create a Gmail App Password, then set:
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=yourgmail@gmail.com
+SMTP_PASSWORD=your_gmail_app_password
+SMTP_FROM_EMAIL=yourgmail@gmail.com
+SMTP_FROM_NAME=AI Interview
+SMTP_USE_TLS=true
+```
 
 For a quick Resend test, you can use `RESEND_FROM_EMAIL=onboarding@resend.dev`. For real users, verify a domain in Resend and use an address from that domain.
 

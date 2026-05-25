@@ -16,6 +16,20 @@ services:
         value: AI Interview
       - key: RESEND_API_URL
         value: https://api.resend.com/emails
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: AI Interview
+      - key: SMTP_USE_TLS
+        value: "true"
       - key: ALLOW_INSECURE_OTP_RESPONSE
         value: "false"
 

@@ -5,12 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import httpx
+import asyncio
 import logging
 import os
 import json
 import re
 import random
+import smtplib
 from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
+from email.utils import formataddr
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -94,6 +98,13 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "").strip()
 RESEND_FROM_NAME = os.getenv("RESEND_FROM_NAME", "AI Interview").strip()
 RESEND_API_URL = os.getenv("RESEND_API_URL", "https://api.resend.com/emails").strip()
+SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587").strip() or "587")
+SMTP_USER = os.getenv("SMTP_USER", "").strip()
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
+SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", SMTP_USER).strip()
+SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", RESEND_FROM_NAME).strip()
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() != "false"
 ALLOW_INSECURE_OTP_RESPONSE = os.getenv("ALLOW_INSECURE_OTP_RESPONSE", "false").strip().lower() == "true"
 
 
@@ -186,7 +197,7 @@ def get_password_reset_session(reset_token: str) -> Optional[dict]:
     return record
 
 
-def get_missing_email_settings() -> List[str]:
+def get_missing_resend_settings() -> List[str]:
     missing = []
     if not RESEND_API_KEY:
         missing.append("RESEND_API_KEY")
@@ -195,8 +206,35 @@ def get_missing_email_settings() -> List[str]:
     return missing
 
 
+def get_missing_smtp_settings() -> List[str]:
+    missing = []
+    if not SMTP_HOST:
+        missing.append("SMTP_HOST")
+    if not SMTP_USER:
+        missing.append("SMTP_USER")
+    if not SMTP_PASSWORD:
+        missing.append("SMTP_PASSWORD")
+    if not SMTP_FROM_EMAIL:
+        missing.append("SMTP_FROM_EMAIL")
+    return missing
+
+
+def is_smtp_configured() -> bool:
+    return not get_missing_smtp_settings()
+
+
+def is_resend_configured() -> bool:
+    return not get_missing_resend_settings()
+
+
+def get_missing_email_settings() -> List[str]:
+    if is_smtp_configured() or is_resend_configured():
+        return []
+    return get_missing_smtp_settings() + get_missing_resend_settings()
+
+
 def is_email_configured() -> bool:
-    return not get_missing_email_settings()
+    return is_smtp_configured() or is_resend_configured()
 
 
 def build_otp_config_error() -> HTTPException:
@@ -206,10 +244,90 @@ def build_otp_config_error() -> HTTPException:
         status_code=500,
         detail=(
             "OTP email delivery is not configured on the server. "
-            "Set RESEND_API_KEY and RESEND_FROM_EMAIL."
+            "Set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM_EMAIL, "
+            "or set RESEND_API_KEY and RESEND_FROM_EMAIL."
             f"{missing_text}"
         ),
     )
+
+
+def send_smtp_email(recipient_email: str, subject: str, body: str) -> None:
+    message = EmailMessage()
+    message["From"] = formataddr((SMTP_FROM_NAME, SMTP_FROM_EMAIL))
+    message["To"] = recipient_email
+    message["Subject"] = subject
+    message.set_content(body)
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as smtp:
+            if SMTP_USE_TLS:
+                smtp.starttls()
+            smtp.login(SMTP_USER, SMTP_PASSWORD)
+            smtp.send_message(message)
+    except smtplib.SMTPAuthenticationError as exc:
+        logger.exception("SMTP authentication failed while sending OTP email")
+        raise HTTPException(
+            status_code=500,
+            detail="SMTP authentication failed. For Gmail, use an App Password, not your normal Gmail password.",
+        ) from exc
+    except (smtplib.SMTPException, OSError) as exc:
+        logger.exception("SMTP failed while sending OTP email")
+        raise HTTPException(
+            status_code=500,
+            detail="Could not send OTP through SMTP. Check SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, and sender settings.",
+        ) from exc
+
+
+def get_resend_error_message(response: httpx.Response) -> str:
+    try:
+        err_json = response.json()
+        if isinstance(err_json, dict):
+            error = err_json.get("error")
+            candidates = [
+                err_json.get("message"),
+                error.get("message") if isinstance(error, dict) else None,
+                error if isinstance(error, str) else None,
+            ]
+            for candidate in candidates:
+                if candidate:
+                    return str(candidate).strip()
+    except Exception:
+        pass
+
+    try:
+        return response.text.strip()
+    except Exception:
+        return ""
+
+
+def build_resend_rejection_detail(status_code: int, resend_msg: str) -> str:
+    msg_lower = resend_msg.lower()
+    sandbox_markers = (
+        "testing emails",
+        "verify a domain",
+        "verify your domain",
+        "domain is not verified",
+        "only send",
+        "own email",
+        "registered email",
+    )
+
+    if any(marker in msg_lower for marker in sandbox_markers):
+        suffix = f" Resend said: {resend_msg}" if resend_msg else ""
+        return (
+            "Resend is blocking this recipient because the sender is still in test/sandbox mode. "
+            "With onboarding@resend.dev, Resend usually only allows emails to the Resend account owner's email. "
+            "Verify a domain in Resend and set RESEND_FROM_EMAIL to an address on that domain to send OTPs to other users."
+            f"{suffix}"
+        )
+
+    if status_code == 401:
+        return f"Resend authentication failed: {resend_msg}" if resend_msg else "Resend authentication failed. Check RESEND_API_KEY."
+    if status_code == 403:
+        return f"Resend authorization failed: {resend_msg}" if resend_msg else "Resend authorization failed. Check your Resend sender/domain permissions."
+    if status_code == 422:
+        return f"Resend rejected the email request (422): {resend_msg}" if resend_msg else "Resend rejected the email request. Check RESEND_FROM_EMAIL and verify your Resend sender/domain."
+    return f"Resend rejected the OTP email request: {resend_msg}" if resend_msg else "Resend rejected the OTP email request."
 
 
 async def send_auth_otp_email(recipient_email: str, otp: str, purpose: str) -> None:
@@ -224,6 +342,11 @@ async def send_auth_otp_email(recipient_email: str, otp: str, purpose: str) -> N
         f"It expires in {OTP_EXPIRY_MINUTES} minutes.",
         "If you did not request this, you can ignore this email.",
     ])
+
+    if is_smtp_configured():
+        await asyncio.to_thread(send_smtp_email, recipient_email, subject, body)
+        return
+
     sender = f"{RESEND_FROM_NAME} <{RESEND_FROM_EMAIL}>"
     payload = {
         "from": sender,
@@ -244,13 +367,9 @@ async def send_auth_otp_email(recipient_email: str, otp: str, purpose: str) -> N
         raise
     except httpx.HTTPStatusError as exc:
         status_code = exc.response.status_code
-        logger.exception("Resend rejected OTP email with status %s", status_code)
-        if status_code in {401, 403}:
-            detail = "Resend authentication failed. Check RESEND_API_KEY."
-        elif status_code == 422:
-            detail = "Resend rejected the email request. Check RESEND_FROM_EMAIL and verify your Resend sender/domain."
-        else:
-            detail = "Resend rejected the OTP email request."
+        resend_msg = get_resend_error_message(exc.response)
+        logger.exception("Resend rejected OTP email with status %s: %s", status_code, resend_msg)
+        detail = build_resend_rejection_detail(status_code, resend_msg)
         raise HTTPException(status_code=500, detail=detail) from exc
     except httpx.RequestError as exc:
         logger.exception("Could not connect to Resend while sending OTP email")
