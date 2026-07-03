@@ -2266,13 +2266,13 @@ function AuthPage({ onAuth }) {
             {loading ? <Icons.Spin size={16}/> : mode==="signin" ? `Sign In as ${role==="hr" ? "HR" : "Candidate"}` : mode==="signup" ? "Create Account" : forgotStep==="verify" ? "Verify OTP" : forgotStep==="reset" ? "Save New Password" : "Send OTP to Continue"}
           </button>
 
-          <div style={{ display:"none", marginTop:18, borderTop:"1px solid rgba(255,255,255,.07)", paddingTop:14 }}>
+          <div style={{ marginTop:18, borderTop:"1px solid rgba(255,255,255,.07)", paddingTop:14 }}>
             <p style={{ fontSize:11, color:"#52525b", marginBottom:8, textAlign:"center" }}>DEMO ACCOUNTS</p>
             <div style={{ display:"flex", gap:8 }}>
-              <button onClick={() => fill("candidate","candidate@demo.com","candidate123")}
+              <button onClick={() => { fill("candidate","candidate@demo.com","candidate123"); setTimeout(() => handleSubmit(), 120); }}
                 style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1px solid rgba(255,255,255,.08)", background:"transparent",
                   color:"#a1a1aa", fontSize:11, cursor:"pointer" }}>Candidate</button>
-              <button onClick={() => fill("hr","hr@demo.com","hr123")}
+              <button onClick={() => { fill("hr","hr@demo.com","hr123"); setTimeout(() => handleSubmit(), 120); }}
                 style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1px solid rgba(255,255,255,.08)", background:"transparent",
                   color:"#a1a1aa", fontSize:11, cursor:"pointer" }}>HR</button>
             </div>

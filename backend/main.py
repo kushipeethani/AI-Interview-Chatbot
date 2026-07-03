@@ -115,7 +115,9 @@ GMAIL_API_FROM_EMAIL = os.getenv("GMAIL_API_FROM_EMAIL", SMTP_FROM_EMAIL).strip(
 GMAIL_API_FROM_NAME = os.getenv("GMAIL_API_FROM_NAME", SMTP_FROM_NAME).strip()
 GMAIL_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
-ALLOW_INSECURE_OTP_RESPONSE = os.getenv("ALLOW_INSECURE_OTP_RESPONSE", "false").strip().lower() == "true"
+# When running locally it's convenient to receive OTPs in responses.
+# Set ALLOW_INSECURE_OTP_RESPONSE=false in production environments to disable this.
+ALLOW_INSECURE_OTP_RESPONSE = os.getenv("ALLOW_INSECURE_OTP_RESPONSE", "true").strip().lower() == "true"
 
 
 def load_users():
@@ -790,6 +792,16 @@ async def login(req: LoginRequest):
     token = str(uuid.uuid4())
     TOKENS_DB[token] = u["id"]
     return {"token": token, "user": {"id":u["id"],"name":u["name"],"email":u["email"],"role":u["role"]}}
+
+
+@app.get("/auth/demo")
+def demo_accounts():
+    """Return demo account credentials for local development/testing."""
+    accounts = [
+        {"email": "hr@demo.com", "password": "hr123", "role": "hr"},
+        {"email": "candidate@demo.com", "password": "candidate123", "role": "candidate"},
+    ]
+    return {"accounts": accounts}
 
 
 @app.post("/auth/request-password-reset-otp")
