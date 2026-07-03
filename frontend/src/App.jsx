@@ -2079,20 +2079,22 @@ function AuthPage({ onAuth }) {
     }
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(overrideEmail, overridePassword, overrideRole) {
     setError("");
     setLoading(true);
     try {
-      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedEmail = (overrideEmail ?? email).trim().toLowerCase();
+      const currentPassword = overridePassword ?? password;
+      const currentRole = overrideRole ?? role;
       let data = null;
 
       if (mode === "signup") {
         if (!name.trim()) throw new Error("Enter your full name");
         if (!isValidEmail(normalizedEmail)) throw new Error("Enter a valid email address");
-        if (!password) throw new Error("Enter your password");
-        if (!hasSpecialCharacter(password)) throw new Error("Password must include at least 1 special character");
+        if (!currentPassword) throw new Error("Enter your password");
+        if (!hasSpecialCharacter(currentPassword)) throw new Error("Password must include at least 1 special character");
         if (!otp.trim()) throw new Error("Enter the OTP sent to your email");
-        data = await post("/auth/signup", { name: name.trim(), email: normalizedEmail, password, otp: otp.trim(), role });
+        data = await post("/auth/signup", { name: name.trim(), email: normalizedEmail, password: currentPassword, otp: otp.trim(), role: currentRole });
       } else if (mode === "forgot") {
         if (!isValidEmail(normalizedEmail)) throw new Error("Enter a valid email address");
         if (forgotStep === "verify") {
@@ -2130,8 +2132,8 @@ function AuthPage({ onAuth }) {
         }
       } else {
         if (!isValidEmail(normalizedEmail)) throw new Error("Enter a valid email address");
-        if (!password) throw new Error("Enter your password");
-        data = await post("/auth/login", { email: normalizedEmail, password, role });
+        if (!currentPassword) throw new Error("Enter your password");
+        data = await post("/auth/login", { email: normalizedEmail, password: currentPassword, role: currentRole });
       }
 
       if (data?.token && data?.user) {
@@ -2287,15 +2289,15 @@ function AuthPage({ onAuth }) {
             <p style={{ fontSize:11, color:"#52525b", marginBottom:8, textAlign:"center" }}>DEMO ACCOUNTS</p>
             <div style={{ display:"flex", gap:8 }}>
               {demoAccounts && demoAccounts.length ? demoAccounts.map(a => (
-                <button key={a.email} onClick={() => { fill(a.role, a.email, a.password); setTimeout(() => handleSubmit(), 120); }}
+                <button key={a.email} onClick={() => { fill(a.role, a.email, a.password); handleSubmit(a.email, a.password, a.role); }}
                   style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1px solid rgba(255,255,255,.08)", background:"transparent",
                     color:"#a1a1aa", fontSize:11, cursor:"pointer" }}>{a.role === 'hr' ? 'HR' : 'Candidate'}</button>
               )) : (
                 <>
-                  <button onClick={() => { fill("candidate","candidate@demo.com","candidate123"); setTimeout(() => handleSubmit(), 120); }}
+                  <button onClick={() => { fill("candidate","candidate@demo.com","candidate123"); handleSubmit("candidate@demo.com", "candidate123", "candidate"); }}
                     style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1px solid rgba(255,255,255,.08)", background:"transparent",
                       color:"#a1a1aa", fontSize:11, cursor:"pointer" }}>Candidate</button>
-                  <button onClick={() => { fill("hr","hr@demo.com","hr123"); setTimeout(() => handleSubmit(), 120); }}
+                  <button onClick={() => { fill("hr","hr@demo.com","hr123"); handleSubmit("hr@demo.com", "hr123", "hr"); }}
                     style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1px solid rgba(255,255,255,.08)", background:"transparent",
                       color:"#a1a1aa", fontSize:11, cursor:"pointer" }}>HR</button>
                 </>
