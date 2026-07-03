@@ -2036,6 +2036,23 @@ function AuthPage({ onAuth }) {
     resetOtpState();
   };
 
+  const [demoAccounts, setDemoAccounts] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch(`${API}/auth/demo`);
+        if (!mounted) return;
+        if (!res.ok) return;
+        const json = await res.json();
+        setDemoAccounts(json.accounts || []);
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   async function handleSendOtp() {
     const normalizedEmail = email.trim().toLowerCase();
     setError("");
@@ -2269,12 +2286,20 @@ function AuthPage({ onAuth }) {
           <div style={{ marginTop:18, borderTop:"1px solid rgba(255,255,255,.07)", paddingTop:14 }}>
             <p style={{ fontSize:11, color:"#52525b", marginBottom:8, textAlign:"center" }}>DEMO ACCOUNTS</p>
             <div style={{ display:"flex", gap:8 }}>
-              <button onClick={() => { fill("candidate","candidate@demo.com","candidate123"); setTimeout(() => handleSubmit(), 120); }}
-                style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1px solid rgba(255,255,255,.08)", background:"transparent",
-                  color:"#a1a1aa", fontSize:11, cursor:"pointer" }}>Candidate</button>
-              <button onClick={() => { fill("hr","hr@demo.com","hr123"); setTimeout(() => handleSubmit(), 120); }}
-                style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1px solid rgba(255,255,255,.08)", background:"transparent",
-                  color:"#a1a1aa", fontSize:11, cursor:"pointer" }}>HR</button>
+              {demoAccounts && demoAccounts.length ? demoAccounts.map(a => (
+                <button key={a.email} onClick={() => { fill(a.role, a.email, a.password); setTimeout(() => handleSubmit(), 120); }}
+                  style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1px solid rgba(255,255,255,.08)", background:"transparent",
+                    color:"#a1a1aa", fontSize:11, cursor:"pointer" }}>{a.role === 'hr' ? 'HR' : 'Candidate'}</button>
+              )) : (
+                <>
+                  <button onClick={() => { fill("candidate","candidate@demo.com","candidate123"); setTimeout(() => handleSubmit(), 120); }}
+                    style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1px solid rgba(255,255,255,.08)", background:"transparent",
+                      color:"#a1a1aa", fontSize:11, cursor:"pointer" }}>Candidate</button>
+                  <button onClick={() => { fill("hr","hr@demo.com","hr123"); setTimeout(() => handleSubmit(), 120); }}
+                    style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1px solid rgba(255,255,255,.08)", background:"transparent",
+                      color:"#a1a1aa", fontSize:11, cursor:"pointer" }}>HR</button>
+                </>
+              )}
             </div>
           </div>
         </div>
