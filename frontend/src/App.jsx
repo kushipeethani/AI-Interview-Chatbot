@@ -2388,105 +2388,34 @@ function AuthPage({ onAuth }) {
   }
 
   return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"stretch" }}>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:20, position:"relative" }}>
+      
+      {/* Background Orbs for centered layout */}
+      <div style={{ position:"absolute", top:"20%", left:"20%", width:300, height:300,
+        borderRadius:"50%", background:"radial-gradient(circle,rgba(99,102,241,.15),transparent 70%)",
+        filter:"blur(60px)", animation:"orb-drift-1 12s ease-in-out infinite", zIndex:0 }}/>
+      <div style={{ position:"absolute", bottom:"20%", right:"20%", width:250, height:250,
+        borderRadius:"50%", background:"radial-gradient(circle,rgba(139,92,246,.12),transparent 70%)",
+        filter:"blur(50px)", animation:"orb-drift-2 15s ease-in-out infinite", zIndex:0 }}/>
 
-      {/* LEFT: 3D visual panel */}
-      <div style={{ flex:"0 0 45%", display:"flex", flexDirection:"column", alignItems:"center",
-        justifyContent:"center", padding:"60px 48px", position:"relative", overflow:"hidden",
-        background:"linear-gradient(135deg,#06070d 0%,#0d0f22 50%,#060b18 100%)" }}
-        className="hide-mobile">
-
-        {/* 3D orbs */}
-        <div style={{ position:"absolute", top:"10%", left:"15%", width:220, height:220,
-          borderRadius:"50%", background:"radial-gradient(circle,rgba(99,102,241,.22),transparent 70%)",
-          filter:"blur(50px)", animation:"orb-drift-1 10s ease-in-out infinite" }}/>
-        <div style={{ position:"absolute", bottom:"15%", right:"10%", width:180, height:180,
-          borderRadius:"50%", background:"radial-gradient(circle,rgba(6,182,212,.18),transparent 70%)",
-          filter:"blur(40px)", animation:"orb-drift-2 14s ease-in-out infinite" }}/>
-        <div style={{ position:"absolute", top:"50%", left:"50%", width:120, height:120,
-          borderRadius:"50%", background:"radial-gradient(circle,rgba(139,92,246,.15),transparent 70%)",
-          filter:"blur(30px)", animation:"orb-drift-3 9s ease-in-out infinite",
-          transform:"translate(-50%,-50%)" }}/>
-
-        {/* Grid overlay */}
-        <div style={{ position:"absolute", inset:0, opacity:0.03,
-          backgroundImage:"linear-gradient(rgba(99,102,241,1) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,1) 1px,transparent 1px)",
-          backgroundSize:"40px 40px" }}/>
-
-        {/* Content */}
-        <div style={{ position:"relative", zIndex:2, textAlign:"center" }}>
-          <div style={{ width:72, height:72, borderRadius:20, background:"linear-gradient(135deg,rgba(99,102,241,.3),rgba(139,92,246,.2))",
-            border:"1.5px solid rgba(99,102,241,.4)", display:"flex", alignItems:"center",
-            justifyContent:"center", margin:"0 auto 24px",
-            boxShadow:"0 0 40px rgba(99,102,241,.3), inset 0 1px 0 rgba(255,255,255,.1)",
+      {/* Centered Auth Form */}
+      <div style={{ width:"100%", maxWidth:420, position:"relative", zIndex:1 }}>
+        {/* Logo */}
+        <div style={{ textAlign:"center", marginBottom:32 }}>
+          <div style={{ width:64, height:64, borderRadius:16, background:"linear-gradient(135deg,rgba(99,102,241,.2),rgba(139,92,246,.1))",
+            border:"1px solid rgba(99,102,241,.3)", display:"flex", alignItems:"center",
+            justifyContent:"center", margin:"0 auto 20px",
+            boxShadow:"0 0 30px rgba(99,102,241,.2), inset 0 1px 0 rgba(255,255,255,.05)",
             animation:"pulse-ring 3s ease infinite" }}>
-            <span style={{ color:"#818cf8", filter:"drop-shadow(0 0 12px rgba(99,102,241,.8))" }}>
-              <Icons.Brain/>
+            <span style={{ color:"#818cf8", filter:"drop-shadow(0 0 10px rgba(99,102,241,.6))" }}>
+              <Icons.Brain size={32}/>
             </span>
           </div>
-
           <h2 style={{ fontSize:28, fontWeight:900, letterSpacing:"-0.03em", marginBottom:8 }}>
             <span className="gradient-text">AI Interview</span>
           </h2>
-          <p style={{ color:"#71717a", fontSize:13, marginBottom:40, lineHeight:1.6 }}>
-            Your AI-powered interview coach.<br/>Practice. Improve. Get hired.
-          </p>
-
-          {/* AI Assistant Showcase */}
-          <div style={{ position:"relative", width:"100%", marginTop:30, display:"flex", justifyContent:"center", perspective:"1000px" }}>
-            <Float3DCard delay={100} style={{ padding:"36px 24px", background:"rgba(15,17,32,0.85)", 
-              border:"1px solid rgba(99,102,241,.4)", borderRadius:24, backdropFilter:"blur(20px)",
-              boxShadow:"0 30px 60px rgba(0,0,0,0.6), 0 0 40px rgba(99,102,241,.15)",
-              display:"flex", flexDirection:"column", alignItems:"center", gap:20, width:"100%", maxWidth:340 }}>
-              
-              {/* Glowing ring around avatar */}
-              <div style={{ position:"relative", padding:16, borderRadius:"50%", 
-                background:"linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.1))",
-                border:"1px solid rgba(99,102,241,.3)" }}>
-                <div style={{ position:"absolute", inset:-2, borderRadius:"50%", 
-                  border:"2px solid transparent", borderTopColor:"#818cf8", borderRightColor:"#c084fc", animation:"spin 4s linear infinite" }}/>
-                <div style={{ transform:"scale(1.2)" }}>
-                  <AnimeAvatar isSpeaking={true} isListening={false} isThinking={false} />
-                </div>
-              </div>
-
-              <div style={{ textAlign:"center" }}>
-                <div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"4px 12px", 
-                  borderRadius:20, background:"rgba(34,197,94,.1)", border:"1px solid rgba(34,197,94,.2)", 
-                  color:"#22c55e", fontSize:10, fontWeight:800, marginBottom:14 }}>
-                  <span style={{ width:6, height:6, borderRadius:"50%", background:"#22c55e", animation:"pulse-ring 2s infinite" }}/>
-                  ARIA IS ONLINE
-                </div>
-                <div style={{ padding:"12px 16px", borderRadius:12, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.07)" }}>
-                  <p style={{ fontSize:13, color:"#c7d2fe", lineHeight:1.6, fontStyle:"italic" }}>
-                    "Hello! I'm Aria, your personal AI interviewer. Sign in and let's get started with your practice session."
-                  </p>
-                </div>
-              </div>
-              
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:4 }}>
-                <Icons.Mic size={14} color="#818cf8"/>
-                <AudioBars active={true} />
-              </div>
-            </Float3DCard>
-          </div>
+          <p style={{ color:"#a1a1aa", fontSize:14 }}>Your AI-powered interview coach</p>
         </div>
-      </div>
-
-      {/* RIGHT: Auth Form */}
-      <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center",
-        padding:"40px 20px", background:"rgba(6,7,13,0.6)" }}>
-        <div style={{ width:"100%", maxWidth:420 }}>
-          {/* Mobile logo */}
-          <div style={{ textAlign:"center", marginBottom:28 }}>
-            <div style={{ display:"inline-flex", alignItems:"center", gap:10, marginBottom:6 }}>
-              <span style={{ color:"#818cf8", filter:"drop-shadow(0 0 8px rgba(99,102,241,.7))" }}>
-                <Icons.Brain/>
-              </span>
-              <span className="gradient-text" style={{ fontSize:22, fontWeight:900, letterSpacing:"-.02em" }}>AI Interview</span>
-            </div>
-            <p style={{ color:"#71717a", fontSize:13 }}>Your AI-powered interview coach</p>
-          </div>
 
         <div className="card" style={{ border:"1px solid rgba(99,102,241,.25)", padding:28,
           boxShadow:"0 0 60px rgba(99,102,241,.08)" }}>
