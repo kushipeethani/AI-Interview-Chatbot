@@ -1,0 +1,267 @@
+/* ─── Custom Cursor ────────────────────────────────────────────────────────── */
+*, *::before, *::after { cursor: none !important; }
+#custom-cursor {
+  position: fixed;
+  top: 0; left: 0;
+  width: 12px; height: 12px;
+  background: #6366f1;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: width 0.2s ease, height 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+  mix-blend-mode: screen;
+}
+#cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  width: 36px; height: 36px;
+  border: 1.5px solid rgba(99,102,241,0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%, -50%);
+  transition: transform 0.12s ease, width 0.25s ease, height 0.25s ease, border-color 0.25s ease, opacity 0.25s ease;
+}
+body.cursor-hover #custom-cursor {
+  width: 6px; height: 6px;
+  background: #a5b4fc;
+}
+body.cursor-hover #cursor-ring {
+  width: 52px; height: 52px;
+  border-color: rgba(165,180,252,0.6);
+}
+body.cursor-click #custom-cursor {
+  width: 20px; height: 20px;
+  background: rgba(99,102,241,0.6);
+}
+
+/* ─── Aurora Background Orbs ───────────────────────────────────────────────── */
+#aurora-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.aurora-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.18;
+  transition: transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
+.aurora-orb-1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, #6366f1, transparent 70%);
+  top: -200px; left: -150px;
+  animation: orb-drift-1 18s ease-in-out infinite;
+}
+.aurora-orb-2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, #06b6d4, transparent 70%);
+  bottom: -150px; right: -100px;
+  animation: orb-drift-2 22s ease-in-out infinite;
+}
+.aurora-orb-3 {
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, #8b5cf6, transparent 70%);
+  top: 40%; left: 50%;
+  animation: orb-drift-3 15s ease-in-out infinite;
+}
+@keyframes orb-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(60px, 80px) scale(1.1); }
+  66% { transform: translate(-40px, 40px) scale(0.95); }
+}
+@keyframes orb-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40% { transform: translate(-70px, -60px) scale(1.08); }
+  80% { transform: translate(30px, -30px) scale(0.92); }
+}
+@keyframes orb-drift-3 {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.2); }
+}
+
+/* ─── Particle Canvas ───────────────────────────────────────────────────────── */
+#particle-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.55;
+}
+
+/* ─── Glassmorphism Card Upgrade ────────────────────────────────────────────── */
+.card {
+  background: rgba(15, 17, 32, 0.65) !important;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  will-change: transform;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(99,102,241,0.06), transparent 40%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+}
+.card:hover::before { opacity: 1; }
+.card > * { position: relative; z-index: 1; }
+
+/* ─── Tilt Card ──────────────────────────────────────────────────────────────── */
+.tilt-card {
+  transform-style: preserve-3d;
+  perspective: 800px;
+}
+
+/* ─── Glow Border on focus / active nav ─────────────────────────────────────── */
+.glow-active {
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.5), 0 0 20px rgba(99,102,241,0.2) !important;
+}
+.input:focus {
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.25), 0 0 16px rgba(99,102,241,0.1) !important;
+}
+
+/* ─── Button Enhancements ───────────────────────────────────────────────────── */
+.btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.18s ease, box-shadow 0.18s ease !important;
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 28px rgba(99,102,241,0.5), 0 4px 14px rgba(99,102,241,0.3) !important;
+  transform: translateY(-1px) !important;
+}
+.btn-ghost:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+}
+
+/* ─── Ripple Effect ─────────────────────────────────────────────────────────── */
+.ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  transform: scale(0);
+  animation: ripple-anim 0.55s linear;
+  pointer-events: none;
+}
+@keyframes ripple-anim {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* ─── Scroll Reveal ──────────────────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.08s; }
+.reveal-delay-2 { transition-delay: 0.16s; }
+.reveal-delay-3 { transition-delay: 0.24s; }
+.reveal-delay-4 { transition-delay: 0.32s; }
+
+/* ─── Stagger list items ─────────────────────────────────────────────────────── */
+.stagger-item {
+  opacity: 0;
+  transform: translateX(-12px);
+  animation: stagger-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes stagger-in {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ─── Header Glassmorphism ───────────────────────────────────────────────────── */
+header {
+  background: rgba(6,7,13,0.75) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 1px 30px rgba(0,0,0,0.4) !important;
+}
+
+/* ─── Neon tag glow ─────────────────────────────────────────────────────────── */
+.tag {
+  box-shadow: 0 0 8px rgba(99,102,241,0.2);
+}
+.tag-cyan {
+  box-shadow: 0 0 8px rgba(6,182,212,0.2);
+}
+
+/* ─── Nav button active state ─────────────────────────────────────────────────── */
+.nav-active {
+  box-shadow: 0 0 16px rgba(99,102,241,0.25) !important;
+}
+
+/* ─── Floating label input animation ─────────────────────────────────────────── */
+.input {
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease !important;
+}
+.input:focus {
+  background: rgba(255,255,255,0.06) !important;
+}
+
+/* ─── Score ring animation ───────────────────────────────────────────────────── */
+@keyframes score-ring-fill {
+  from { stroke-dashoffset: 283; }
+  to   { stroke-dashoffset: var(--target-offset); }
+}
+.score-ring-circle {
+  animation: score-ring-fill 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.3s;
+  stroke-dashoffset: 283;
+}
+
+/* ─── Gradient text ─────────────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #818cf8, #06b6d4, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradient-shift 4s ease infinite;
+}
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ─── Shimmer loading skeleton ───────────────────────────────────────────────── */
+.shimmer {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ─── Magnetic button micro-animation ────────────────────────────────────────── */
+.magnetic { transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1) !important; }
+
+/* ─── Ensure content is above background layers ─────────────────────────────── */
+body > #root {
+  position: relative;
+  z-index: 2;
+}

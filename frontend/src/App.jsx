@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { FaceDetector as MediaPipeFaceDetector, FilesetResolver } from "@mediapipe/tasks-vision";
 import AnimeAvatar from "./components/AnimeAvatar.jsx";
+import MouseEffects from "./components/MouseEffects.jsx";
 
 // ─── Backend API Base URL ────────────────────────────────────────────────────
 const DEFAULT_API = import.meta.env.PROD ? "https://ai-interview-final-aaki.onrender.com" : "http://localhost:8000";
@@ -2425,7 +2426,7 @@ export default function App() {
   }
 
   // Not logged in → show auth page
-  if (!user) return (<><style>{CSS}</style><AuthPage onAuth={handleAuth}/></>);
+  if (!user) return (<><style>{CSS}</style><MouseEffects/><AuthPage onAuth={handleAuth}/></>);
 
   const candidateNav = [
     { key:"home",      label:"Home",      icon:<Icons.Home/> },
@@ -2441,11 +2442,12 @@ export default function App() {
   return (
     <>
       <style>{CSS}</style>
+      <MouseEffects/>
       <header style={{ position:"sticky", top:0, zIndex:40, borderBottom:"1px solid rgba(255,255,255,.07)", background:"rgba(6,7,13,.85)", backdropFilter:"blur(24px)" }}>
         <div style={{ maxWidth:1100, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"13px 20px" }}>
           <div onClick={() => setPage(user.role==="hr"?"recruiter":"home")} style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", color:"#f4f4f5" }}>
-            <Icons.Brain/>
-            <span style={{ fontSize:14, fontWeight:800, letterSpacing:"-.01em" }}>AI Interview</span>
+            <span style={{ color:"#818cf8", filter:"drop-shadow(0 0 8px rgba(99,102,241,0.7))" }}><Icons.Brain/></span>
+            <span className="gradient-text" style={{ fontSize:14, fontWeight:800, letterSpacing:"-.01em" }}>AI Interview</span>
           </div>
           <nav style={{ display:"flex", gap:3, alignItems:"center" }}>
             {navItems.map(n => (
