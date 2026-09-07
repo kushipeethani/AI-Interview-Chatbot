@@ -2565,7 +2565,6 @@ function AuthPage({ onAuth }) {
             </div>
           </div>
         </div>
-        </div>
       </div>
     </div>
   );
