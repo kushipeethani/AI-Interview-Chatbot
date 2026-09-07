@@ -1655,57 +1655,295 @@ function InterviewPage({ onFinish, onStartCoding }) {
   }
 }
 
+// ─── Typewriter Hook ──────────────────────────────────────────────────────────
+function useTypewriter(texts, speed = 55, pause = 1800) {
+  const [display, setDisplay] = useState("");
+  const [idx, setIdx] = useState(0);
+  const [charIdx, setCharIdx] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+  const [showCursor, setShowCursor] = useState(true);
+
+  useEffect(() => {
+    const blink = setInterval(() => setShowCursor(c => !c), 530);
+    return () => clearInterval(blink);
+  }, []);
+
+  useEffect(() => {
+    const current = texts[idx % texts.length];
+    if (!deleting && charIdx <= current.length) {
+      const t = setTimeout(() => {
+        setDisplay(current.slice(0, charIdx));
+        setCharIdx(c => c + 1);
+      }, charIdx === current.length ? pause : speed);
+      return () => clearTimeout(t);
+    }
+    if (!deleting && charIdx > current.length) {
+      const t = setTimeout(() => setDeleting(true), pause);
+      return () => clearTimeout(t);
+    }
+    if (deleting && charIdx >= 0) {
+      const t = setTimeout(() => {
+        setDisplay(current.slice(0, charIdx));
+        setCharIdx(c => c - 1);
+      }, speed / 2);
+      return () => clearTimeout(t);
+    }
+    if (deleting && charIdx < 0) {
+      setDeleting(false);
+      setIdx(i => i + 1);
+      setCharIdx(0);
+    }
+  }, [charIdx, deleting, idx, texts, speed, pause]);
+
+  return { display, showCursor };
+}
+
+// ─── 3D Floating Card ─────────────────────────────────────────────────────────
+function Float3DCard({ children, style, delay = 0 }) {
+  const ref = useRef();
+  const onMove = e => {
+    const rect = ref.current.getBoundingClientRect();
+    const cx = e.clientX - rect.left - rect.width / 2;
+    const cy = e.clientY - rect.top - rect.height / 2;
+    const rotX = (-cy / rect.height) * 14;
+    const rotY = (cx / rect.width) * 14;
+    ref.current.style.transform = `perspective(700px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateZ(6px)`;
+    ref.current.style.boxShadow = `${-rotY}px ${rotX}px 40px rgba(99,102,241,0.25), 0 20px 60px rgba(0,0,0,0.5)`;
+  };
+  const onLeave = () => {
+    ref.current.style.transform = "perspective(700px) rotateX(0deg) rotateY(0deg) translateZ(0px)";
+    ref.current.style.boxShadow = "";
+  };
+  return (
+    <div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave}
+      className="card reveal"
+      style={{ transition:"transform 0.18s ease, box-shadow 0.18s ease", transformStyle:"preserve-3d", animationDelay:`${delay}ms`, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+// ─── Animated Counter ─────────────────────────────────────────────────────────
+function AnimCounter({ target, suffix = "", duration = 1800 }) {
+  const [val, setVal] = useState(0);
+  const ref = useRef();
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      obs.disconnect();
+      let start = 0;
+      const step = target / (duration / 16);
+      const t = setInterval(() => {
+        start = Math.min(start + step, target);
+        setVal(Math.floor(start));
+        if (start >= target) clearInterval(t);
+      }, 16);
+    }, { threshold: 0.3 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [target, duration]);
+  return <span ref={ref}>{val}{suffix}</span>;
+}
+
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 function LandingPage({ onStart, onGoToCoding }) {
+  const { display, showCursor } = useTypewriter([
+    "Practice Real Interviews",
+    "Get AI-Powered Feedback",
+    "Ace Your Next Interview",
+    "Train with Voice & Code",
+  ], 60, 2000);
+
   return (
-    <main style={{ maxWidth:1100, margin:"0 auto", padding:"48px 20px 80px" }}>
-      <div style={{ display:"grid", gridTemplateColumns:"1.2fr 1fr", gap:22, alignItems:"start" }}>
-        <div className="card" style={{ padding:"38px", border:"1px solid rgba(99,102,241,.3)", boxShadow:"0 0 60px rgba(99,102,241,.1)" }}>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"4px 13px", borderRadius:20, background:"rgba(99,102,241,.1)", border:"1px solid rgba(99,102,241,.25)", fontSize:12, color:"#818cf8", marginBottom:22 }}>
-            <Icons.Brain/> AI Interview Assistant
-          </div>
-          <h1 style={{ fontSize:38, fontWeight:800, lineHeight:1.15, letterSpacing:"-0.03em", marginBottom:14 }}>
-            Practice Real Interviews with Voice, AI Feedback & Proctoring
-          </h1>
-          <p style={{ color:"#a1a1aa", fontSize:14, lineHeight:1.65, marginBottom:28 }}>
-            Answer AI-generated questions by voice, get weighted feedback across 5 professional metrics, and receive recruiter-style reports. Powered by Python + FastAPI backend.
-          </p>
-          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:28 }}>
-            <button className="btn btn-primary" style={{ fontSize:14, padding:"11px 26px" }} onClick={onStart}>Start Interview <Icons.Arrow/></button>
-            <button className="btn btn-ghost" style={{ fontSize:14 }} onClick={onGoToCoding}><Icons.Code/> Coding</button>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:8 }}>
-            {[
-              { icon:<Icons.Shield/>, c:"#f59e0b", t:"Anti-Cheat Proctoring", d:"Webcam + tab detection" },
-              { icon:<Icons.Chart/>, c:"#6366f1", t:"Weighted Evaluation", d:"5 metrics, professional scoring" },
-              { icon:<Icons.Database/>, c:"#06b6d4", t:"RAG Knowledge Base", d:"Python-powered semantic search" },
-              { icon:<Icons.Terminal/>, c:"#8b5cf6", t:"Coding Interview", d:"Run code + submit results" },
-            ].map(f => (
-              <div key={f.t} style={{ padding:"11px 13px", borderRadius:9, background:"rgba(0,0,0,.25)", border:"1px solid rgba(255,255,255,.07)" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:6, color:f.c, marginBottom:4 }}>{f.icon}<span style={{ fontSize:12, fontWeight:600 }}>{f.t}</span></div>
-                <p style={{ fontSize:11, color:"#52525b" }}>{f.d}</p>
+    <main style={{ maxWidth:1140, margin:"0 auto", padding:"52px 20px 100px" }}>
+
+      {/* ── Hero Section ─────────────────────────────────── */}
+      <div style={{ textAlign:"center", marginBottom:64, position:"relative" }}>
+        {/* 3D floating orbs behind hero */}
+        <div style={{ position:"absolute", top:-60, left:"10%", width:180, height:180,
+          borderRadius:"50%", background:"radial-gradient(circle,rgba(99,102,241,.18),transparent 70%)",
+          filter:"blur(30px)", animation:"orb-drift-1 8s ease-in-out infinite", pointerEvents:"none" }}/>
+        <div style={{ position:"absolute", top:20, right:"8%", width:140, height:140,
+          borderRadius:"50%", background:"radial-gradient(circle,rgba(6,182,212,.15),transparent 70%)",
+          filter:"blur(24px)", animation:"orb-drift-2 11s ease-in-out infinite", pointerEvents:"none" }}/>
+
+        <div className="reveal" style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"5px 16px",
+          borderRadius:20, background:"rgba(99,102,241,.1)", border:"1px solid rgba(99,102,241,.28)",
+          fontSize:12, color:"#818cf8", marginBottom:24, backdropFilter:"blur(8px)" }}>
+          <span style={{ width:6, height:6, borderRadius:"50%", background:"#22c55e", display:"inline-block", animation:"pulse-ring 2s ease infinite" }}/>
+          AI Interview Assistant · Powered by Groq
+        </div>
+
+        {/* Typewriter Headline */}
+        <h1 className="reveal reveal-delay-1" style={{ fontSize:"clamp(36px,5vw,64px)", fontWeight:900,
+          lineHeight:1.1, letterSpacing:"-0.04em", marginBottom:12, minHeight:"1.2em" }}>
+          <span className="gradient-text">{display}</span>
+          <span style={{ opacity: showCursor ? 1 : 0, color:"#6366f1", fontWeight:300 }}>|</span>
+        </h1>
+        <p className="reveal reveal-delay-2" style={{ fontSize:"clamp(14px,2vw,18px)", fontWeight:600,
+          color:"#f4f4f5", marginBottom:8, letterSpacing:"-0.01em" }}>
+          with Voice, AI Feedback & Proctoring
+        </p>
+        <p className="reveal reveal-delay-3" style={{ color:"#71717a", fontSize:14, lineHeight:1.7,
+          maxWidth:560, margin:"0 auto 36px" }}>
+          Answer AI-generated questions by voice, get weighted feedback across 5 professional metrics,
+          and receive recruiter-style reports. Powered by Python + FastAPI backend.
+        </p>
+
+        <div className="reveal reveal-delay-4" style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
+          <button className="btn btn-primary" style={{ fontSize:15, padding:"13px 32px",
+            boxShadow:"0 0 40px rgba(99,102,241,.4)" }} onClick={onStart}>
+            Start Interview <Icons.Arrow/>
+          </button>
+          <button className="btn btn-ghost" style={{ fontSize:15, padding:"13px 24px" }} onClick={onGoToCoding}>
+            <Icons.Code/> Coding Round
+          </button>
+        </div>
+      </div>
+
+      {/* ── Animated Stats Row ───────────────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14, marginBottom:52 }}>
+        {[
+          { val:5, suffix:"+", label:"Interview Metrics", color:"#6366f1" },
+          { val:10, suffix:"+", label:"Coding Challenges", color:"#06b6d4" },
+          { val:100, suffix:"%", label:"AI-Powered Feedback", color:"#8b5cf6" },
+          { val:3, suffix:"s", label:"Avg Response Time", color:"#f59e0b" },
+        ].map((s, i) => (
+          <Float3DCard key={s.label} delay={i * 80}
+            style={{ padding:"20px 18px", textAlign:"center", border:"1px solid rgba(255,255,255,.08)" }}>
+            <div style={{ fontSize:36, fontWeight:900, color:s.color, fontFamily:"monospace",
+              textShadow:`0 0 20px ${s.color}55` }}>
+              <AnimCounter target={s.val} suffix={s.suffix}/>
+            </div>
+            <div style={{ fontSize:12, color:"#71717a", marginTop:4 }}>{s.label}</div>
+          </Float3DCard>
+        ))}
+      </div>
+
+      {/* ── Feature Cards + Live Preview ─────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"1.15fr 1fr", gap:22, alignItems:"start" }}>
+
+        {/* LEFT: Feature grid */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+          {[
+            { icon:<Icons.Shield/>, c:"#f59e0b", t:"Anti-Cheat Proctoring", d:"Webcam face detection + tab-switch monitoring in real-time", glow:"rgba(245,158,11,.15)" },
+            { icon:<Icons.Chart/>,  c:"#6366f1", t:"Weighted Evaluation",   d:"5 professional metrics: technical, communication, confidence…", glow:"rgba(99,102,241,.15)" },
+            { icon:<Icons.Database/>,c:"#06b6d4",t:"RAG Knowledge Base",   d:"Semantic search across 50+ curated interview questions", glow:"rgba(6,182,212,.15)" },
+            { icon:<Icons.Terminal/>,c:"#8b5cf6",t:"Live Coding Round",    d:"Run & submit code with AI test case evaluation", glow:"rgba(139,92,246,.15)" },
+            { icon:<Icons.Mic size={16}/>, c:"#22c55e", t:"Voice Recognition", d:"Speak naturally — browser speech-to-text captures every word", glow:"rgba(34,197,94,.15)" },
+            { icon:<Icons.Brain/>,  c:"#f43f5e", t:"Groq AI Engine",       d:"Ultra-fast LLM inference for real-time follow-up questions", glow:"rgba(244,63,94,.15)" },
+          ].map((f, i) => (
+            <Float3DCard key={f.t} delay={i * 60}
+              style={{ padding:"18px 16px", border:`1px solid ${f.glow.replace(".15","0.2")}`,
+                background:`linear-gradient(135deg, rgba(15,17,32,0.9), ${f.glow})` }}>
+              {/* 3D icon orb */}
+              <div style={{ width:38, height:38, borderRadius:10, background:f.glow,
+                border:`1px solid ${f.c}33`, display:"flex", alignItems:"center",
+                justifyContent:"center", color:f.c, marginBottom:10,
+                boxShadow:`0 4px 16px ${f.c}22`, transform:"translateZ(8px)" }}>
+                {f.icon}
               </div>
-            ))}
-          </div>
+              <div style={{ fontSize:13, fontWeight:700, color:"#f4f4f5", marginBottom:5,
+                transform:"translateZ(6px)" }}>{f.t}</div>
+              <p style={{ fontSize:11, color:"#71717a", lineHeight:1.6,
+                transform:"translateZ(4px)" }}>{f.d}</p>
+            </Float3DCard>
+          ))}
         </div>
-        <div className="card" style={{ padding:0, overflow:"hidden", aspectRatio:"4/5" }}>
-          <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg,#0c0e20,#111827)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:18, padding:28 }}>
-            <div style={{ width:68, height:68, borderRadius:"50%", background:"rgba(99,102,241,.15)", border:"2px solid rgba(99,102,241,.4)", display:"flex", alignItems:"center", justifyContent:"center", animation:"pulse-ring 2.5s ease infinite" }}>
-              <Icons.Mic size={30}/>
-            </div>
-            <AudioBars active={true}/>
-            <p style={{ textAlign:"center", color:"#a1a1aa", fontSize:13, maxWidth:200, lineHeight:1.6 }}>Powered by Python FastAPI + Groq AI</p>
-            <div style={{ width:"100%", padding:"13px 15px", borderRadius:9, background:"rgba(99,102,241,.07)", border:"1px solid rgba(99,102,241,.2)" }}>
-              <p style={{ fontSize:11, color:"#818cf8", fontWeight:600, marginBottom:8 }}>Backend Endpoints</p>
-              {["/generate-questions","/evaluate-answer","/generate-report","/analyze-code","/rag-search"].map(e => (
-                <div key={e} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:5 }}>
-                  <div style={{ width:5, height:5, borderRadius:"50%", background:"#22c55e", flexShrink:0 }}/>
-                  <span style={{ fontSize:10, color:"#52525b", fontFamily:"monospace" }}>{e}</span>
-                </div>
+
+        {/* RIGHT: 3D Live Preview Panel */}
+        <Float3DCard style={{ padding:0, overflow:"hidden", border:"1px solid rgba(99,102,241,.3)",
+          boxShadow:"0 0 80px rgba(99,102,241,.12)" }}>
+          <div style={{ background:"linear-gradient(160deg,#0a0c1e,#0f1428)",
+            padding:"0 0 24px" }}>
+
+            {/* Mock browser topbar */}
+            <div style={{ display:"flex", alignItems:"center", gap:6, padding:"12px 16px",
+              borderBottom:"1px solid rgba(255,255,255,.06)",
+              background:"rgba(0,0,0,.25)" }}>
+              {["#ef4444","#f59e0b","#22c55e"].map(c => (
+                <div key={c} style={{ width:10, height:10, borderRadius:"50%", background:c, opacity:.7 }}/>
               ))}
+              <div style={{ flex:1, height:20, borderRadius:4, background:"rgba(255,255,255,.04)",
+                marginLeft:8, display:"flex", alignItems:"center", paddingLeft:10 }}>
+                <span style={{ fontSize:9, color:"#52525b", fontFamily:"monospace" }}>ai-interview.app · live session</span>
+              </div>
+              <div style={{ width:6, height:6, borderRadius:"50%", background:"#22c55e",
+                animation:"pulse-ring 2s ease infinite", flexShrink:0 }}/>
+            </div>
+
+            <div style={{ padding:"22px 22px 8px" }}>
+              {/* Avatar + waveform */}
+              <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:18 }}>
+                <div style={{ width:52, height:52, borderRadius:"50%",
+                  background:"linear-gradient(135deg,rgba(99,102,241,.3),rgba(139,92,246,.3))",
+                  border:"2px solid rgba(99,102,241,.5)", display:"flex", alignItems:"center",
+                  justifyContent:"center", animation:"pulse-ring 2.5s ease infinite",
+                  flexShrink:0 }}>
+                  <Icons.Brain/>
+                </div>
+                <div>
+                  <div style={{ fontSize:11, fontWeight:700, color:"#818cf8", marginBottom:3 }}>ARIA — AI Interviewer</div>
+                  <AudioBars active={true}/>
+                </div>
+                <div style={{ marginLeft:"auto", fontSize:9, color:"#22c55e", padding:"3px 8px",
+                  borderRadius:5, background:"rgba(34,197,94,.08)",
+                  border:"1px solid rgba(34,197,94,.2)" }}>● REC</div>
+              </div>
+
+              {/* Mock question bubble */}
+              <div style={{ padding:"13px 15px", borderRadius:10, background:"rgba(99,102,241,.08)",
+                border:"1px solid rgba(99,102,241,.2)", marginBottom:14 }}>
+                <p style={{ fontSize:12, color:"#c7d2fe", lineHeight:1.65 }}>
+                  "Tell me about a time you faced a major technical challenge. How did you resolve it?"
+                </p>
+              </div>
+
+              {/* Mock answer + mic */}
+              <div style={{ padding:"10px 13px", borderRadius:9, background:"rgba(255,255,255,.03)",
+                border:"1px solid rgba(255,255,255,.07)", marginBottom:14,
+                display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ color:"#6366f1" }}><Icons.Mic size={15}/></div>
+                <span style={{ fontSize:11, color:"#6366f1" }}>🔴 Recording answer...</span>
+                <AudioBars active={true}/>
+              </div>
+
+              {/* Mock score bars */}
+              <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+                {[
+                  { label:"Technical", pct:82, color:"#6366f1" },
+                  { label:"Communication", pct:74, color:"#06b6d4" },
+                  { label:"Confidence", pct:91, color:"#22c55e" },
+                ].map(m => (
+                  <div key={m.label}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                      <span style={{ fontSize:10, color:"#a1a1aa" }}>{m.label}</span>
+                      <span style={{ fontSize:10, color:m.color, fontFamily:"monospace" }}>{m.pct}%</span>
+                    </div>
+                    <div style={{ height:4, background:"rgba(255,255,255,.06)", borderRadius:3, overflow:"hidden" }}>
+                      <div style={{ height:"100%", width:`${m.pct}%`, background:`linear-gradient(90deg,${m.color},#06b6d4)`,
+                        borderRadius:3, animation:"shimmer 2s ease-in-out infinite",
+                        backgroundSize:"200% 100%" }}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Endpoint list */}
+              <div style={{ marginTop:16, padding:"11px 13px", borderRadius:8,
+                background:"rgba(6,182,212,.05)", border:"1px solid rgba(6,182,212,.15)" }}>
+                <p style={{ fontSize:10, color:"#06b6d4", fontWeight:700, marginBottom:7,
+                  textTransform:"uppercase", letterSpacing:".07em" }}>Live API Endpoints</p>
+                {["/generate-questions","/evaluate-answer","/generate-report"].map(e => (
+                  <div key={e} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                    <div style={{ width:5, height:5, borderRadius:"50%", background:"#22c55e", flexShrink:0 }}/>
+                    <span style={{ fontSize:10, color:"#52525b", fontFamily:"monospace" }}>{e}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        </Float3DCard>
       </div>
     </main>
   );
@@ -2150,16 +2388,85 @@ function AuthPage({ onAuth }) {
   }
 
   return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <div style={{ width:"100%", maxWidth:420 }}>
-        <div style={{ textAlign:"center", marginBottom:32 }}>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:10, marginBottom:10 }}>
-            <Icons.Brain/><span style={{ fontSize:22, fontWeight:900, letterSpacing:"-.02em" }}>AI Interview</span>
-          </div>
-          <p style={{ color:"#a1a1aa", fontSize:13 }}>Your AI-powered interview coach</p>
-        </div>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"stretch" }}>
 
-        <div className="card" style={{ border:"1px solid rgba(99,102,241,.25)", padding:28 }}>
+      {/* LEFT: 3D visual panel */}
+      <div style={{ flex:"0 0 45%", display:"flex", flexDirection:"column", alignItems:"center",
+        justifyContent:"center", padding:"60px 48px", position:"relative", overflow:"hidden",
+        background:"linear-gradient(135deg,#06070d 0%,#0d0f22 50%,#060b18 100%)" }}
+        className="hide-mobile">
+
+        {/* 3D orbs */}
+        <div style={{ position:"absolute", top:"10%", left:"15%", width:220, height:220,
+          borderRadius:"50%", background:"radial-gradient(circle,rgba(99,102,241,.22),transparent 70%)",
+          filter:"blur(50px)", animation:"orb-drift-1 10s ease-in-out infinite" }}/>
+        <div style={{ position:"absolute", bottom:"15%", right:"10%", width:180, height:180,
+          borderRadius:"50%", background:"radial-gradient(circle,rgba(6,182,212,.18),transparent 70%)",
+          filter:"blur(40px)", animation:"orb-drift-2 14s ease-in-out infinite" }}/>
+        <div style={{ position:"absolute", top:"50%", left:"50%", width:120, height:120,
+          borderRadius:"50%", background:"radial-gradient(circle,rgba(139,92,246,.15),transparent 70%)",
+          filter:"blur(30px)", animation:"orb-drift-3 9s ease-in-out infinite",
+          transform:"translate(-50%,-50%)" }}/>
+
+        {/* Grid overlay */}
+        <div style={{ position:"absolute", inset:0, opacity:0.03,
+          backgroundImage:"linear-gradient(rgba(99,102,241,1) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,1) 1px,transparent 1px)",
+          backgroundSize:"40px 40px" }}/>
+
+        {/* Content */}
+        <div style={{ position:"relative", zIndex:2, textAlign:"center" }}>
+          <div style={{ width:72, height:72, borderRadius:20, background:"linear-gradient(135deg,rgba(99,102,241,.3),rgba(139,92,246,.2))",
+            border:"1.5px solid rgba(99,102,241,.4)", display:"flex", alignItems:"center",
+            justifyContent:"center", margin:"0 auto 24px",
+            boxShadow:"0 0 40px rgba(99,102,241,.3), inset 0 1px 0 rgba(255,255,255,.1)",
+            animation:"pulse-ring 3s ease infinite" }}>
+            <span style={{ color:"#818cf8", filter:"drop-shadow(0 0 12px rgba(99,102,241,.8))" }}>
+              <Icons.Brain/>
+            </span>
+          </div>
+
+          <h2 style={{ fontSize:28, fontWeight:900, letterSpacing:"-0.03em", marginBottom:8 }}>
+            <span className="gradient-text">AI Interview</span>
+          </h2>
+          <p style={{ color:"#71717a", fontSize:13, marginBottom:40, lineHeight:1.6 }}>
+            Your AI-powered interview coach.<br/>Practice. Improve. Get hired.
+          </p>
+
+          {/* Feature bullets */}
+          {[
+            { icon:"🎤", text:"Voice-powered Q&A with AI interviewer" },
+            { icon:"🛡️", text:"Real-time proctoring & anti-cheat" },
+            { icon:"📊", text:"Weighted scoring across 5 metrics" },
+            { icon:"💻", text:"Live coding challenges + AI evaluation" },
+          ].map((f, i) => (
+            <div key={i} className="reveal" style={{ display:"flex", alignItems:"center", gap:12,
+              padding:"10px 14px", borderRadius:10, background:"rgba(255,255,255,.03)",
+              border:"1px solid rgba(255,255,255,.07)", marginBottom:8, textAlign:"left",
+              animationDelay:`${i * 80}ms` }}>
+              <span style={{ fontSize:16 }}>{f.icon}</span>
+              <span style={{ fontSize:12, color:"#a1a1aa" }}>{f.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* RIGHT: Auth Form */}
+      <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center",
+        padding:"40px 20px", background:"rgba(6,7,13,0.6)" }}>
+        <div style={{ width:"100%", maxWidth:420 }}>
+          {/* Mobile logo */}
+          <div style={{ textAlign:"center", marginBottom:28 }}>
+            <div style={{ display:"inline-flex", alignItems:"center", gap:10, marginBottom:6 }}>
+              <span style={{ color:"#818cf8", filter:"drop-shadow(0 0 8px rgba(99,102,241,.7))" }}>
+                <Icons.Brain/>
+              </span>
+              <span className="gradient-text" style={{ fontSize:22, fontWeight:900, letterSpacing:"-.02em" }}>AI Interview</span>
+            </div>
+            <p style={{ color:"#71717a", fontSize:13 }}>Your AI-powered interview coach</p>
+          </div>
+
+        <div className="card" style={{ border:"1px solid rgba(99,102,241,.25)", padding:28,
+          boxShadow:"0 0 60px rgba(99,102,241,.08)" }}>
           <div style={{ display:"flex", gap:0, marginBottom:24, borderRadius:10, background:"rgba(255,255,255,.04)", padding:3 }}>
             {[ ["signin","Sign In"], ["signup","Sign Up"] ].map(([k,l]) => (
               <button key={k} onClick={() => handleModeChange(k)}
@@ -2305,6 +2612,7 @@ function AuthPage({ onAuth }) {
               )}
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
