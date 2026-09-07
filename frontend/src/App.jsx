@@ -2432,46 +2432,41 @@ function AuthPage({ onAuth }) {
             Your AI-powered interview coach.<br/>Practice. Improve. Get hired.
           </p>
 
-          {/* 3D Feature Composition */}
-          <div style={{ position:"relative", width:"100%", height:240, marginTop:20, perspective:"1000px" }}>
-            {/* Top 3D Card - AI Scoring */}
-            <Float3DCard delay={0} style={{ position:"absolute", top:0, left:"8%", right:"18%",
-              padding:"18px", background:"rgba(15,17,32,0.75)", border:"1px solid rgba(99,102,241,.3)",
-              backdropFilter:"blur(12px)", borderRadius:14, zIndex:2,
-              boxShadow:"0 15px 35px rgba(0,0,0,0.4), 0 0 20px rgba(99,102,241,.15)" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14 }}>
-                <div style={{ width:36, height:36, borderRadius:"50%", background:"rgba(99,102,241,.2)",
-                  display:"flex", alignItems:"center", justifyContent:"center", color:"#818cf8" }}>
-                  <Icons.Chart/>
+          {/* AI Assistant Showcase */}
+          <div style={{ position:"relative", width:"100%", marginTop:30, display:"flex", justifyContent:"center", perspective:"1000px" }}>
+            <Float3DCard delay={100} style={{ padding:"36px 24px", background:"rgba(15,17,32,0.85)", 
+              border:"1px solid rgba(99,102,241,.4)", borderRadius:24, backdropFilter:"blur(20px)",
+              boxShadow:"0 30px 60px rgba(0,0,0,0.6), 0 0 40px rgba(99,102,241,.15)",
+              display:"flex", flexDirection:"column", alignItems:"center", gap:20, width:"100%", maxWidth:340 }}>
+              
+              {/* Glowing ring around avatar */}
+              <div style={{ position:"relative", padding:16, borderRadius:"50%", 
+                background:"linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.1))",
+                border:"1px solid rgba(99,102,241,.3)" }}>
+                <div style={{ position:"absolute", inset:-2, borderRadius:"50%", 
+                  border:"2px solid transparent", borderTopColor:"#818cf8", borderRightColor:"#c084fc", animation:"spin 4s linear infinite" }}/>
+                <div style={{ transform:"scale(1.2)" }}>
+                  <AnimeAvatar isSpeaking={true} isListening={false} isThinking={false} />
                 </div>
-                <div style={{ flex:1, textAlign:"left" }}>
-                  <div style={{ fontSize:11, color:"#a1a1aa", fontWeight:800, letterSpacing:".05em", marginBottom:5 }}>AI EVALUATION</div>
-                  <div style={{ height:5, background:"rgba(255,255,255,.05)", borderRadius:3 }}>
-                    <div style={{ width:"85%", height:"100%", background:"linear-gradient(90deg,#6366f1,#06b6d4)", borderRadius:3, animation:"shimmer 2s infinite", backgroundSize:"200% 100%" }}/>
-                  </div>
-                </div>
-                <div style={{ fontSize:16, fontWeight:900, color:"#a3e635", fontFamily:"monospace" }}>85%</div>
               </div>
-              <div style={{ display:"flex", gap:8 }}>
-                <span className="tag" style={{ fontSize:10, padding:"3px 8px" }}>Communication</span>
-                <span className="tag tag-cyan" style={{ fontSize:10, padding:"3px 8px" }}>Technical</span>
-              </div>
-            </Float3DCard>
 
-            {/* Bottom 3D Card - Live Audio */}
-            <Float3DCard delay={150} style={{ position:"absolute", top:100, left:"18%", right:"8%",
-              padding:"18px", background:"rgba(15,17,32,0.85)", border:"1px solid rgba(6,182,212,.3)",
-              backdropFilter:"blur(16px)", borderRadius:14, zIndex:3,
-              boxShadow:"0 20px 40px rgba(0,0,0,0.5), 0 0 25px rgba(6,182,212,.15)" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <div style={{ width:8, height:8, borderRadius:"50%", background:"#ef4444", animation:"pulse-ring 2s infinite" }}/>
-                  <span style={{ fontSize:12, color:"#e2e8f0", fontWeight:700 }}>Live Voice Analysis</span>
+              <div style={{ textAlign:"center" }}>
+                <div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"4px 12px", 
+                  borderRadius:20, background:"rgba(34,197,94,.1)", border:"1px solid rgba(34,197,94,.2)", 
+                  color:"#22c55e", fontSize:10, fontWeight:800, marginBottom:14 }}>
+                  <span style={{ width:6, height:6, borderRadius:"50%", background:"#22c55e", animation:"pulse-ring 2s infinite" }}/>
+                  ARIA IS ONLINE
                 </div>
-                <div style={{ color:"#06b6d4" }}><Icons.Mic size={16}/></div>
+                <div style={{ padding:"12px 16px", borderRadius:12, background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.07)" }}>
+                  <p style={{ fontSize:13, color:"#c7d2fe", lineHeight:1.6, fontStyle:"italic" }}>
+                    "Hello! I'm Aria, your personal AI interviewer. Sign in and let's get started with your practice session."
+                  </p>
+                </div>
               </div>
-              <div style={{ padding:"12px", background:"rgba(0,0,0,.3)", borderRadius:10, border:"1px solid rgba(255,255,255,.05)" }}>
-                <AudioBars active={true}/>
+              
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:4 }}>
+                <Icons.Mic size={14} color="#818cf8"/>
+                <AudioBars active={true} />
               </div>
             </Float3DCard>
           </div>
