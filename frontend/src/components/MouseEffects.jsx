@@ -203,60 +203,6 @@ function initParallaxOrbs() {
   return () => window.removeEventListener("mousemove", onMove);
 }
 
-// ─── Custom Cursor ────────────────────────────────────────────────────────────
-function initCursor() {
-  const cursor = document.getElementById("custom-cursor");
-  const ring = document.getElementById("cursor-ring");
-  if (!cursor || !ring) return () => {};
-
-  let mouseX = 0, mouseY = 0;
-  let ringX = 0, ringY = 0;
-  let animId;
-
-  const onMove = (e) => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-    cursor.style.left = `${mouseX}px`;
-    cursor.style.top = `${mouseY}px`;
-  };
-
-  const animate = () => {
-    ringX += (mouseX - ringX) * 0.12;
-    ringY += (mouseY - ringY) * 0.12;
-    ring.style.left = `${ringX}px`;
-    ring.style.top = `${ringY}px`;
-    animId = requestAnimationFrame(animate);
-  };
-  animate();
-
-  const onHoverIn = () => document.body.classList.add("cursor-hover");
-  const onHoverOut = () => document.body.classList.remove("cursor-hover");
-  const onDown = () => document.body.classList.add("cursor-click");
-  const onUp = () => document.body.classList.remove("cursor-click");
-
-  const attachHover = () => {
-    document.querySelectorAll("button, a, input, select, textarea, [role=button], .card").forEach((el) => {
-      el.addEventListener("mouseenter", onHoverIn);
-      el.addEventListener("mouseleave", onHoverOut);
-    });
-  };
-  attachHover();
-  const mutObs = new MutationObserver(attachHover);
-  mutObs.observe(document.body, { childList: true, subtree: true });
-
-  window.addEventListener("mousemove", onMove);
-  window.addEventListener("mousedown", onDown);
-  window.addEventListener("mouseup", onUp);
-
-  return () => {
-    cancelAnimationFrame(animId);
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mousedown", onDown);
-    window.removeEventListener("mouseup", onUp);
-    mutObs.disconnect();
-  };
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function MouseEffects() {
   const canvasRef = useRef(null);
@@ -269,7 +215,6 @@ export default function MouseEffects() {
       initScrollReveal(),
       addMagneticEffect(),
       initParallaxOrbs(),
-      initCursor(),
     ];
     return () => cleanups.forEach((fn) => fn?.());
   }, []);
@@ -281,10 +226,6 @@ export default function MouseEffects() {
 
   return (
     <>
-      {/* Custom Cursor */}
-      <div id="custom-cursor" />
-      <div id="cursor-ring" />
-
       {/* Aurora Background Orbs */}
       <div id="aurora-container">
         <div className="aurora-orb aurora-orb-1" />

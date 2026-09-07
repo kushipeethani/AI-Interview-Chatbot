@@ -1,40 +1,4 @@
-/* ─── Custom Cursor ────────────────────────────────────────────────────────── */
-*, *::before, *::after { cursor: none !important; }
-#custom-cursor {
-  position: fixed;
-  top: 0; left: 0;
-  width: 12px; height: 12px;
-  background: #6366f1;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99999;
-  transform: translate(-50%, -50%);
-  transition: width 0.2s ease, height 0.2s ease, background 0.2s ease, opacity 0.2s ease;
-  mix-blend-mode: screen;
-}
-#cursor-ring {
-  position: fixed;
-  top: 0; left: 0;
-  width: 36px; height: 36px;
-  border: 1.5px solid rgba(99,102,241,0.5);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99998;
-  transform: translate(-50%, -50%);
-  transition: transform 0.12s ease, width 0.25s ease, height 0.25s ease, border-color 0.25s ease, opacity 0.25s ease;
-}
-body.cursor-hover #custom-cursor {
-  width: 6px; height: 6px;
-  background: #a5b4fc;
-}
-body.cursor-hover #cursor-ring {
-  width: 52px; height: 52px;
-  border-color: rgba(165,180,252,0.6);
-}
-body.cursor-click #custom-cursor {
-  width: 20px; height: 20px;
-  background: rgba(99,102,241,0.6);
-}
+/* ─── Default cursor restored ───────────────────────────────────────────────── */
 
 /* ─── Aurora Background Orbs ───────────────────────────────────────────────── */
 #aurora-container {
