@@ -3,7 +3,7 @@
 ## Stack
 - **Frontend**: React + Vite
 - **Backend**: Python + FastAPI
-- **AI**: Groq (llama-3.3-70b-versatile)
+- **AI**: Groq (llama-3.1-70b-versatile)
 
 ## Project Structure
 ```
